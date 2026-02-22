@@ -6,7 +6,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "query required" });
     }
 
-    const url = `http://www.kkj.go.jp/api/?Query=${encodeURIComponent(query)}&Count=10`;
+    const url = `http://kkj.go.jp/api/?Query=${encodeURIComponent(query)}&Count=10`;
 
     const response = await fetch(url);
     const xml = await response.text();
