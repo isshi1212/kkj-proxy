@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>不動産査定書ツール</title>
+  <style>
+    :root {
+      --primary: #1a5276;
+      --primary-light: #2980b9;
+      --accent: #c0392b;
+      --bg: #f5f6fa;
+      --card: #ffffff;
+      --text: #2c3e50;
+      --text-light: #7f8c8d;
+      --border: #dce1e8;
+      --success: #27ae60;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    .header {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+      color: #fff;
+      padding: 24px 0;
+      text-align: center;
+    }
+    .header h1 { font-size: 1.8rem; letter-spacing: 0.1em; }
+    .header p { font-size: 0.9rem; opacity: 0.85; margin-top: 4px; }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 24px 16px;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: var(--primary);
+      border-bottom: 2px solid var(--primary);
+      padding-bottom: 8px;
+      margin-bottom: 16px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .form-grid .full { grid-column: 1 / -1; }
+
+    @media (max-width: 600px) {
+      .form-grid { grid-template-columns: 1fr; }
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: bold;
+      margin-bottom: 4px;
+      color: var(--text);
+    }
+    label .required {
+      color: var(--accent);
+      font-size: 0.75rem;
+      margin-left: 4px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--primary-light);
+      box-shadow: 0 0 0 3px rgba(41,128,185,0.1);
+    }
+    textarea { resize: vertical; min-height: 60px; }
+
+    .unit-input {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .unit-input input { flex: 1; }
+    .unit-input span { font-size: 0.85rem; color: var(--text-light); white-space: nowrap; }
+
+    .btn-group {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin: 24px 0;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 12px 32px;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+    .btn-primary:hover { background: var(--primary-light); }
+    .btn-secondary {
+      background: #fff;
+      color: var(--primary);
+      border: 2px solid var(--primary);
+    }
+    .btn-secondary:hover { background: var(--bg); }
+    .btn-accent {
+      background: var(--success);
+      color: #fff;
+    }
+    .btn-accent:hover { background: #219a52; }
+
+    /* --- 査定結果 --- */
+    #result-section { display: none; }
+
+    .result-summary {
+      text-align: center;
+      padding: 32px 16px;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e8f4f8 100%);
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    .result-summary .price-label {
+      font-size: 1rem;
+      color: var(--text-light);
+    }
+    .result-summary .price {
+      font-size: 2.4rem;
+      font-weight: bold;
+      color: var(--accent);
+      margin: 8px 0;
+    }
+    .result-summary .price-range {
+      font-size: 0.9rem;
+      color: var(--text-light);
+    }
+
+    .breakdown-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    .breakdown-table th,
+    .breakdown-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+    }
+    .breakdown-table th {
+      background: var(--bg);
+      font-weight: bold;
+      width: 40%;
+    }
+    .breakdown-table td { text-align: right; }
+    .breakdown-table tr.total {
+      font-weight: bold;
+      background: #fef9e7;
+    }
+    .breakdown-table tr.total td {
+      color: var(--accent);
+      font-size: 1.05rem;
+    }
+
+    .info-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    .info-table th,
+    .info-table td {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+    }
+    .info-table th {
+      background: var(--bg);
+      font-weight: bold;
+      width: 35%;
+    }
+
+    /* --- 印刷用 --- */
+    @media print {
+      body { background: #fff; }
+      .header { background: #fff !important; color: var(--primary) !important; border-bottom: 3px double var(--primary); }
+      .no-print { display: none !important; }
+      .card { box-shadow: none; border: 1px solid var(--border); break-inside: avoid; }
+      .container { max-width: 100%; }
+      #input-section { display: none; }
+      #result-section { display: block !important; }
+      .result-summary { background: #fff !important; border: 2px solid var(--primary); }
+      .result-summary .price { color: #000; }
+    }
+
+    .disclaimer {
+      font-size: 0.8rem;
+      color: var(--text-light);
+      text-align: center;
+      margin-top: 16px;
+      padding: 12px;
+      background: #fef9e7;
+      border-radius: 6px;
+    }
+
+    .appraisal-header {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    .appraisal-header h2 {
+      font-size: 1.5rem;
+      color: var(--primary);
+      letter-spacing: 0.15em;
+    }
+    .appraisal-header .date {
+      font-size: 0.9rem;
+      color: var(--text-light);
+      margin-top: 4px;
+    }
+
+    .factor-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 4px 0;
+    }
+    .factor-bar .bar-bg {
+      flex: 1;
+      height: 8px;
+      background: #ecf0f1;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .factor-bar .bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.6s ease;
+    }
+    .factor-bar .bar-label {
+      font-size: 0.8rem;
+      color: var(--text-light);
+      min-width: 40px;
+      text-align: right;
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>不動産査定書ツール</h1>
+  <p>物件情報を入力して査定額を算出します</p>
+</div>
+
+<div class="container">
+
+  <!-- === 入力セクション === -->
+  <div id="input-section">
+    <!-- 基本情報 -->
+    <div class="card">
+      <div class="card-title">物件基本情報</div>
+      <div class="form-grid">
+        <div class="full">
+          <label>物件名称</label>
+          <input type="text" id="propertyName" placeholder="例: ○○マンション 301号室" />
+        </div>
+        <div>
+          <label>物件種別 <span class="required">必須</span></label>
+          <select id="propertyType">
+            <option value="">選択してください</option>
+            <option value="mansion">マンション</option>
+            <option value="house">一戸建て</option>
+            <option value="land">土地</option>
+            <option value="apartment">アパート（一棟）</option>
+            <option value="office">事務所・店舗</option>
+          </select>
+        </div>
+        <div>
+          <label>所在地 <span class="required">必須</span></label>
+          <select id="area">
+            <option value="">選択してください</option>
+            <option value="tokyo_central">東京都心（千代田・中央・港・渋谷・新宿）</option>
+            <option value="tokyo_sub">東京副都心・城南</option>
+            <option value="tokyo_other">東京その他23区</option>
+            <option value="tokyo_tama">東京多摩地域</option>
+            <option value="kanagawa">神奈川県（横浜・川崎）</option>
+            <option value="saitama">埼玉県（さいたま市周辺）</option>
+            <option value="chiba">千葉県（千葉市・船橋周辺）</option>
+            <option value="osaka_central">大阪市中心部</option>
+            <option value="osaka_other">大阪府その他</option>
+            <option value="nagoya">名古屋市</option>
+            <option value="fukuoka">福岡市</option>
+            <option value="sapporo">札幌市</option>
+            <option value="sendai">仙台市</option>
+            <option value="hiroshima">広島市</option>
+            <option value="other_city">その他政令指定都市</option>
+            <option value="local_city">その他地方都市</option>
+            <option value="rural">郊外・農村部</option>
+          </select>
+        </div>
+        <div class="full">
+          <label>住所</label>
+          <input type="text" id="address" placeholder="例: 東京都港区六本木1-1-1" />
+        </div>
+      </div>
+    </div>
+
+    <!-- 面積・築年 -->
+    <div class="card">
+      <div class="card-title">面積・建物情報</div>
+      <div class="form-grid">
+        <div>
+          <label>土地面積 <span class="required">必須</span></label>
+          <div class="unit-input">
+            <input type="number" id="landArea" placeholder="0" min="0" step="0.01" />
+            <span>m&sup2;</span>
+          </div>
+        </div>
+        <div>
+          <label>建物面積（専有面積）</label>
+          <div class="unit-input">
+            <input type="number" id="buildingArea" placeholder="0" min="0" step="0.01" />
+            <span>m&sup2;</span>
+          </div>
+        </div>
+        <div>
+          <label>築年数</label>
+          <div class="unit-input">
+            <input type="number" id="buildingAge" placeholder="0" min="0" max="100" />
+            <span>年</span>
+          </div>
+        </div>
+        <div>
+          <label>構造</label>
+          <select id="structure">
+            <option value="">選択してください</option>
+            <option value="rc">鉄筋コンクリート（RC）</option>
+            <option value="src">鉄骨鉄筋コンクリート（SRC）</option>
+            <option value="steel">鉄骨造（S）</option>
+            <option value="wood">木造</option>
+            <option value="light_steel">軽量鉄骨造</option>
+          </select>
+        </div>
+        <div>
+          <label>間取り</label>
+          <select id="layout">
+            <option value="">選択してください</option>
+            <option value="1R">1R</option>
+            <option value="1K">1K</option>
+            <option value="1DK">1DK</option>
+            <option value="1LDK">1LDK</option>
+            <option value="2DK">2DK</option>
+            <option value="2LDK">2LDK</option>
+            <option value="3DK">3DK</option>
+            <option value="3LDK">3LDK</option>
+            <option value="4LDK">4LDK</option>
+            <option value="5LDK+">5LDK以上</option>
+          </select>
+        </div>
+        <div>
+          <label>階数（所在階 / 総階数）</label>
+          <div class="unit-input">
+            <input type="number" id="floor" placeholder="3" min="1" max="60" style="width:60px" />
+            <span>/</span>
+            <input type="number" id="totalFloors" placeholder="10" min="1" max="60" style="width:60px" />
+            <span>階</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 条件・設備 -->
+    <div class="card">
+      <div class="card-title">立地・条件</div>
+      <div class="form-grid">
+        <div>
+          <label>最寄駅までの距離</label>
+          <select id="stationDistance">
+            <option value="">選択してください</option>
+            <option value="3">徒歩3分以内</option>
+            <option value="5">徒歩5分以内</option>
+            <option value="7">徒歩7分以内</option>
+            <option value="10">徒歩10分以内</option>
+            <option value="15">徒歩15分以内</option>
+            <option value="20">徒歩20分以上</option>
+            <option value="bus">バス利用</option>
+          </select>
+        </div>
+        <div>
+          <label>接道状況</label>
+          <select id="roadAccess">
+            <option value="">選択してください</option>
+            <option value="south">南向き・幅員6m以上</option>
+            <option value="corner">角地</option>
+            <option value="wide">幅員6m以上の道路に接道</option>
+            <option value="normal">幅員4m以上の道路に接道</option>
+            <option value="narrow">幅員4m未満</option>
+            <option value="flag">旗竿地</option>
+          </select>
+        </div>
+        <div>
+          <label>用途地域</label>
+          <select id="zoning">
+            <option value="">選択してください</option>
+            <option value="commercial">商業地域</option>
+            <option value="near_commercial">近隣商業地域</option>
+            <option value="residential1">第一種住居地域</option>
+            <option value="residential2">第二種住居地域</option>
+            <option value="low_residential1">第一種低層住居専用地域</option>
+            <option value="low_residential2">第二種低層住居専用地域</option>
+            <option value="industrial">工業地域</option>
+          </select>
+        </div>
+        <div>
+          <label>日当たり</label>
+          <select id="sunlight">
+            <option value="">選択してください</option>
+            <option value="excellent">非常に良い（南向き・遮るものなし）</option>
+            <option value="good">良い（南向き）</option>
+            <option value="normal">普通</option>
+            <option value="poor">やや悪い（北向き等）</option>
+          </select>
+        </div>
+        <div class="full">
+          <label>備考・特記事項</label>
+          <textarea id="remarks" placeholder="リフォーム履歴、設備の特徴、その他査定に影響する情報など"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- 依頼者情報 -->
+    <div class="card">
+      <div class="card-title">査定依頼者情報</div>
+      <div class="form-grid">
+        <div>
+          <label>依頼者名</label>
+          <input type="text" id="clientName" placeholder="例: 山田 太郎" />
+        </div>
+        <div>
+          <label>査定会社名</label>
+          <input type="text" id="companyName" placeholder="例: ○○不動産株式会社" />
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-group no-print">
+      <button class="btn btn-primary" onclick="calculateAppraisal()">査定額を算出</button>
+      <button class="btn btn-secondary" onclick="resetForm()">リセット</button>
+    </div>
+  </div>
+
+  <!-- === 結果セクション === -->
+  <div id="result-section">
+    <div class="appraisal-header">
+      <h2>不 動 産 査 定 書</h2>
+      <div class="date" id="appraisalDate"></div>
+    </div>
+
+    <div class="result-summary">
+      <div class="price-label">査定価格</div>
+      <div class="price" id="resultPrice"></div>
+      <div class="price-range" id="resultRange"></div>
+    </div>
+
+    <!-- 物件概要 -->
+    <div class="card">
+      <div class="card-title">物件概要</div>
+      <table class="info-table" id="propertyInfoTable"></table>
+    </div>
+
+    <!-- 査定内訳 -->
+    <div class="card">
+      <div class="card-title">査定内訳</div>
+      <table class="breakdown-table" id="breakdownTable"></table>
+    </div>
+
+    <!-- 査定根拠 -->
+    <div class="card">
+      <div class="card-title">査定根拠・補正要因</div>
+      <div id="factorsSection"></div>
+    </div>
+
+    <div class="disclaimer">
+      本査定書は、入力情報に基づく簡易的な机上査定です。実際の売買価格は市場動向・個別事情等により異なる場合があります。<br>
+      正確な査定には、現地調査・登記簿確認等を含む専門家による詳細査定をお勧めいたします。
+    </div>
+
+    <div class="btn-group no-print">
+      <button class="btn btn-accent" onclick="window.print()">印刷 / PDF保存</button>
+      <button class="btn btn-secondary" onclick="backToInput()">入力画面に戻る</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// --- エリア別 基準坪単価 (万円/坪) ---
+const BASE_PRICE_PER_TSUBO = {
+  tokyo_central: 500,
+  tokyo_sub: 350,
+  tokyo_other: 250,
+  tokyo_tama: 150,
+  kanagawa: 180,
+  saitama: 120,
+  chiba: 110,
+  osaka_central: 250,
+  osaka_other: 130,
+  nagoya: 150,
+  fukuoka: 130,
+  sapporo: 90,
+  sendai: 100,
+  hiroshima: 100,
+  other_city: 80,
+  local_city: 50,
+  rural: 25,
+};
+
+// --- エリア別 土地坪単価 (万円/坪) ---
+const LAND_PRICE_PER_TSUBO = {
+  tokyo_central: 800,
+  tokyo_sub: 450,
+  tokyo_other: 300,
+  tokyo_tama: 150,
+  kanagawa: 180,
+  saitama: 120,
+  chiba: 100,
+  osaka_central: 300,
+  osaka_other: 120,
+  nagoya: 150,
+  fukuoka: 120,
+  sapporo: 70,
+  sendai: 80,
+  hiroshima: 80,
+  other_city: 60,
+  local_city: 30,
+  rural: 10,
+};
+
+// --- 構造別 耐用年数 ---
+const USEFUL_LIFE = {
+  src: 60, rc: 47, steel: 34, light_steel: 27, wood: 22,
+};
+
+// --- 構造別 建築坪単価 (万円/坪) ---
+const BUILD_COST_PER_TSUBO = {
+  src: 120, rc: 100, steel: 80, light_steel: 65, wood: 55,
+};
+
+function getVal(id) { return document.getElementById(id).value; }
+function getNum(id) { return parseFloat(document.getElementById(id).value) || 0; }
+
+function formatPrice(manyen) {
+  if (manyen >= 10000) {
+    return (manyen / 10000).toFixed(2).replace(/\.?0+$/, '') + ' 億円';
+  }
+  return Math.round(manyen).toLocaleString() + ' 万円';
+}
+
+function calculateAppraisal() {
+  // バリデーション
+  const propertyType = getVal('propertyType');
+  const area = getVal('area');
+  const landArea = getNum('landArea');
+
+  if (!propertyType || !area || landArea <= 0) {
+    alert('物件種別・所在地・土地面積は必須項目です。');
+    return;
+  }
+
+  const buildingArea = getNum('buildingArea');
+  const buildingAge = getNum('buildingAge');
+  const structure = getVal('structure');
+  const stationDistance = getVal('stationDistance');
+  const roadAccess = getVal('roadAccess');
+  const zoning = getVal('zoning');
+  const sunlight = getVal('sunlight');
+  const floor = getNum('floor');
+  const totalFloors = getNum('totalFloors');
+
+  const landTsubo = landArea / 3.30579;
+  const buildTsubo = buildingArea / 3.30579;
+
+  let landPrice = 0;
+  let buildingPrice = 0;
+  const factors = [];
+
+  // === 土地評価 ===
+  const baseLandPerTsubo = LAND_PRICE_PER_TSUBO[area] || 50;
+  landPrice = landTsubo * baseLandPerTsubo;
+
+  // 接道補正
+  let roadFactor = 1.0;
+  if (roadAccess === 'south') { roadFactor = 1.10; factors.push({ name: '南向き・広幅員道路', impact: +10, color: '#27ae60' }); }
+  else if (roadAccess === 'corner') { roadFactor = 1.08; factors.push({ name: '角地', impact: +8, color: '#27ae60' }); }
+  else if (roadAccess === 'wide') { roadFactor = 1.03; factors.push({ name: '広幅員道路', impact: +3, color: '#27ae60' }); }
+  else if (roadAccess === 'narrow') { roadFactor = 0.90; factors.push({ name: '幅員4m未満', impact: -10, color: '#c0392b' }); }
+  else if (roadAccess === 'flag') { roadFactor = 0.80; factors.push({ name: '旗竿地', impact: -20, color: '#c0392b' }); }
+  landPrice *= roadFactor;
+
+  // 用途地域補正
+  let zoningFactor = 1.0;
+  if (zoning === 'commercial') { zoningFactor = 1.15; factors.push({ name: '商業地域', impact: +15, color: '#27ae60' }); }
+  else if (zoning === 'near_commercial') { zoningFactor = 1.05; factors.push({ name: '近隣商業地域', impact: +5, color: '#27ae60' }); }
+  else if (zoning === 'industrial') { zoningFactor = 0.85; factors.push({ name: '工業地域', impact: -15, color: '#c0392b' }); }
+  landPrice *= zoningFactor;
+
+  // === 建物評価 ===
+  if (propertyType !== 'land' && buildingArea > 0) {
+    const st = structure || 'wood';
+    const costPerTsubo = BUILD_COST_PER_TSUBO[st] || 55;
+    const usefulLife = USEFUL_LIFE[st] || 22;
+
+    // 再調達原価
+    const replacementCost = buildTsubo * costPerTsubo;
+
+    // 経年減価 (残存率は最低15%)
+    const ageRatio = Math.min(buildingAge / usefulLife, 1);
+    const residualRate = Math.max(1 - ageRatio * 0.85, 0.15);
+    buildingPrice = replacementCost * residualRate;
+
+    if (buildingAge > 0) {
+      const depPct = Math.round((1 - residualRate) * 100);
+      factors.push({ name: `経年減価（築${buildingAge}年/${usefulLife}年）`, impact: -depPct, color: '#e67e22' });
+    }
+  }
+
+  // マンション特有の補正
+  let totalPrice = landPrice + buildingPrice;
+
+  if (propertyType === 'mansion') {
+    // 坪単価ベースの取引事例比較法も併用
+    const marketPerTsubo = BASE_PRICE_PER_TSUBO[area] || 100;
+    let marketPrice = buildTsubo * marketPerTsubo;
+
+    // 築年補正
+    if (buildingAge > 0) {
+      const ageFactor = Math.max(1 - buildingAge * 0.015, 0.3);
+      marketPrice *= ageFactor;
+    }
+
+    // 階数補正
+    if (floor && totalFloors) {
+      const floorRatio = floor / totalFloors;
+      if (floorRatio > 0.7) {
+        marketPrice *= 1.05;
+        factors.push({ name: '高層階プレミアム', impact: +5, color: '#27ae60' });
+      } else if (floorRatio < 0.2 && floor <= 2) {
+        marketPrice *= 0.95;
+        factors.push({ name: '低層階', impact: -5, color: '#e67e22' });
+      }
+    }
+
+    // 原価法と取引事例比較法の加重平均
+    totalPrice = totalPrice * 0.35 + marketPrice * 0.65;
+  }
+
+  // 駅距離補正
+  let stationFactor = 1.0;
+  if (stationDistance === '3') { stationFactor = 1.10; factors.push({ name: '駅徒歩3分以内', impact: +10, color: '#27ae60' }); }
+  else if (stationDistance === '5') { stationFactor = 1.05; factors.push({ name: '駅徒歩5分以内', impact: +5, color: '#27ae60' }); }
+  else if (stationDistance === '15') { stationFactor = 0.95; factors.push({ name: '駅徒歩15分以内', impact: -5, color: '#e67e22' }); }
+  else if (stationDistance === '20') { stationFactor = 0.90; factors.push({ name: '駅徒歩20分以上', impact: -10, color: '#c0392b' }); }
+  else if (stationDistance === 'bus') { stationFactor = 0.85; factors.push({ name: 'バス利用', impact: -15, color: '#c0392b' }); }
+  totalPrice *= stationFactor;
+
+  // 日当たり補正
+  let sunFactor = 1.0;
+  if (sunlight === 'excellent') { sunFactor = 1.05; factors.push({ name: '日当たり非常に良い', impact: +5, color: '#27ae60' }); }
+  else if (sunlight === 'good') { sunFactor = 1.02; factors.push({ name: '日当たり良好', impact: +2, color: '#27ae60' }); }
+  else if (sunlight === 'poor') { sunFactor = 0.95; factors.push({ name: '日当たり不良', impact: -5, color: '#c0392b' }); }
+  totalPrice *= sunFactor;
+
+  // 端数調整（10万円単位）
+  totalPrice = Math.round(totalPrice / 10) * 10;
+
+  // レンジ（±10%）
+  const priceLow = Math.round(totalPrice * 0.9 / 10) * 10;
+  const priceHigh = Math.round(totalPrice * 1.1 / 10) * 10;
+
+  // === 結果を表示 ===
+  renderResult({
+    totalPrice, priceLow, priceHigh,
+    landPrice: Math.round(landPrice / 10) * 10,
+    buildingPrice: Math.round(buildingPrice / 10) * 10,
+    factors, landTsubo, buildTsubo,
+  });
+}
+
+function renderResult(data) {
+  const today = new Date();
+  const dateStr = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`;
+
+  document.getElementById('appraisalDate').textContent =
+    `査定日: ${dateStr}` + (getVal('companyName') ? ` ／ ${getVal('companyName')}` : '');
+
+  document.getElementById('resultPrice').textContent = formatPrice(data.totalPrice);
+  document.getElementById('resultRange').textContent =
+    `想定価格帯: ${formatPrice(data.priceLow)} 〜 ${formatPrice(data.priceHigh)}`;
+
+  // 物件概要テーブル
+  const propType = { mansion: 'マンション', house: '一戸建て', land: '土地', apartment: 'アパート（一棟）', office: '事務所・店舗' };
+  const structName = { rc: 'RC造', src: 'SRC造', steel: '鉄骨造', light_steel: '軽量鉄骨造', wood: '木造' };
+  const areaName = document.getElementById('area').selectedOptions[0]?.text || '';
+
+  let infoRows = '';
+  const addRow = (label, val) => { if (val) infoRows += `<tr><th>${label}</th><td>${val}</td></tr>`; };
+  addRow('物件名称', getVal('propertyName'));
+  addRow('物件種別', propType[getVal('propertyType')] || '');
+  addRow('所在地', areaName);
+  addRow('住所', getVal('address'));
+  addRow('土地面積', `${getNum('landArea')} m² （${data.landTsubo.toFixed(2)} 坪）`);
+  if (getNum('buildingArea') > 0) addRow('建物面積', `${getNum('buildingArea')} m² （${data.buildTsubo.toFixed(2)} 坪）`);
+  if (getNum('buildingAge') > 0) addRow('築年数', `${getNum('buildingAge')} 年`);
+  addRow('構造', structName[getVal('structure')] || '');
+  addRow('間取り', getVal('layout'));
+  if (getNum('floor')) addRow('階数', `${getNum('floor')} 階 / ${getNum('totalFloors')} 階建`);
+  addRow('最寄駅距離', document.getElementById('stationDistance').selectedOptions[0]?.text || '');
+  addRow('依頼者', getVal('clientName'));
+  document.getElementById('propertyInfoTable').innerHTML = infoRows;
+
+  // 内訳テーブル
+  let bdRows = '';
+  bdRows += `<tr><th>土地評価額</th><td>${formatPrice(data.landPrice)}</td></tr>`;
+  if (data.buildingPrice > 0) {
+    bdRows += `<tr><th>建物評価額</th><td>${formatPrice(data.buildingPrice)}</td></tr>`;
+  }
+  if (getVal('propertyType') === 'mansion') {
+    bdRows += `<tr><th>取引事例比較法による補正</th><td>加重平均適用済</td></tr>`;
+  }
+  bdRows += `<tr class="total"><th>査定価格合計</th><td>${formatPrice(data.totalPrice)}</td></tr>`;
+  document.getElementById('breakdownTable').innerHTML = bdRows;
+
+  // 補正要因
+  let factorsHtml = '';
+  if (data.factors.length === 0) {
+    factorsHtml = '<p style="color:#7f8c8d; font-size:0.9rem;">特記すべき補正要因はありません。</p>';
+  } else {
+    data.factors.forEach(f => {
+      const pct = Math.abs(f.impact);
+      const sign = f.impact > 0 ? '+' : '';
+      factorsHtml += `
+        <div class="factor-bar">
+          <span style="min-width:180px; font-size:0.85rem;">${f.name}</span>
+          <div class="bar-bg">
+            <div class="bar-fill" style="width:${Math.min(pct * 2, 100)}%; background:${f.color};"></div>
+          </div>
+          <span class="bar-label" style="color:${f.color};">${sign}${f.impact}%</span>
+        </div>`;
+    });
+  }
+  document.getElementById('factorsSection').innerHTML = factorsHtml;
+
+  // 表示切替
+  document.getElementById('input-section').style.display = 'none';
+  document.getElementById('result-section').style.display = 'block';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function backToInput() {
+  document.getElementById('input-section').style.display = 'block';
+  document.getElementById('result-section').style.display = 'none';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function resetForm() {
+  if (!confirm('入力内容をリセットしますか？')) return;
+  document.querySelectorAll('#input-section input, #input-section select, #input-section textarea').forEach(el => {
+    if (el.tagName === 'SELECT') el.selectedIndex = 0;
+    else el.value = '';
+  });
+}
+</script>
+
+</body>
+</html>
